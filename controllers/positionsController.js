@@ -1,4 +1,4 @@
-const Position = require('../models/position'); 
+const Position = require('../models/Position'); 
 
 const getAllPositions = async (req, res) => {
   const positions = await Position.find();
