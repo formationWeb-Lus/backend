@@ -10,7 +10,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'https://backend-ojdz.onrender.com/api',
         description: 'Serveur local'
       }
     ]
