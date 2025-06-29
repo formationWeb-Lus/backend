@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const historiqueRoutes = require('./routes/historique');
 require('dotenv').config();
 
 const swaggerUi = require('swagger-ui-express');
@@ -9,6 +10,7 @@ const swaggerSpec = require('./swagger');
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use('/api/historique', historiqueRoutes);
 app.use(cors());
 app.use(express.json());
 
