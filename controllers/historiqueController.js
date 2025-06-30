@@ -1,50 +1,117 @@
 const Position = require('../models/Position');
-const Stop = require('../models/stop');
+const moment = require('moment'); // Pour manipuler facilement les dates
 
-function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function calculateTotalDistance(positions) {
-  let total = 0;
-  for (let i = 1; i < positions.length; i++) {
-    const prev = positions[i - 1];
-    const curr = positions[i];
-    total += calculateDistanceKm(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
-  }
-  return Math.round(total * 100) / 100;
-}
-
-exports.getHistorique = async (req, res) => {
+/**
+ * @swagger
+ * /api/historique/{vehiculeId}/{date}:
+ *   get:
+ *     summary: Voir l'historique du véhicule pour un jour donné
+ *     tags: [Historique]
+ *     parameters:
+ *       - in: path
+ *         name: vehiculeId
+ *         required: true
+ *         description: L'ID du véhicule
+ *       - in: path
+ *         name: date
+ *         required: true
+ *         description: La date du trajet (format YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Historique du véhicule
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 vehiculeId:
+ *                   type: string
+ *                 date:
+ *                   type: string
+ *                 distance_km:
+ *                   type: number
+ *                 start_time:
+ *                   type: string
+ *                 end_time:
+ *                   type: string
+ *                 total_stops:
+ *                   type: number
+ *                 total_stop_time:
+ *                   type: string
+ */
+const getHistorique = async (req, res) => {
   const { vehiculeId, date } = req.params;
-  const start = new Date(`${date}T00:00:00`);
-  const end = new Date(`${date}T23:59:59`);
+  
+  try {
+    // Récupérer toutes les positions pour le véhicule et la date donnée
+    const startOfDay = moment(date).startOf('day').toDate();
+    const endOfDay = moment(date).endOf('day').toDate();
+    
+    const positions = await Position.find({
+      vehiculeId,
+      timestamp: { $gte: startOfDay, $lte: endOfDay },
+    }).sort({ timestamp: 1 }); // Trier les positions par timestamp croissant
+    
+    if (!positions.length) {
+      return res.status(404).json({ message: 'Aucune donnée pour ce jour' });
+    }
 
-  const positions = await Position.find({ vehiculeId, timestamp: { $gte: start, $lte: end } }).sort('timestamp');
-  const stops = await Stop.find({ vehiculeId, timestamp: { $gte: start, $lte: end } });
+    let totalDistance = 0;
+    let totalStops = 0;
+    let totalStopTime = 0; // en secondes
 
-  if (!positions.length) return res.status(404).json({ message: 'Aucune donnée pour ce jour' });
+    let lastPosition = null;
+    let startTime = positions[0].timestamp;
+    let endTime = positions[positions.length - 1].timestamp;
 
-  const totalDistance = calculateTotalDistance(positions);
-  const totalStopTimeSeconds = stops.reduce((sum, stop) => sum + stop.duration_seconds, 0);
+    positions.forEach((pos, index) => {
+      if (lastPosition) {
+        // Calculer la distance entre deux positions
+        const distance = calculateDistance(lastPosition, pos);
+        totalDistance += distance;
+        
+        // Si le véhicule a été à l'arrêt pendant plus de 10 secondes
+        if (pos.vitesse === 0) {
+          totalStops++;
+          totalStopTime += 10; // On suppose qu'un arrêt dure au moins 10 secondes
+        }
+      }
+      lastPosition = pos;
+    });
 
-  res.json({
-    vehicule: vehiculeId,
-    date,
-    distance_km: totalDistance,
-    start_time: positions[0].timestamp,
-    end_time: positions[positions.length - 1].timestamp,
-    total_stops: stops.length,
-    total_stop_time: `${Math.round(totalStopTimeSeconds / 60)} minutes`,
-    stops
-  });
+    const historique = {
+      vehiculeId,
+      date,
+      distance_km: totalDistance / 1000, // Convertir en km
+      start_time: moment(startTime).format('HH:mm:ss'),
+      end_time: moment(endTime).format('HH:mm:ss'),
+      total_stops: totalStops,
+      total_stop_time: `${totalStopTime} minutes`,
+      positions,
+    };
+
+    res.status(200).json(historique);
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err });
+  }
 };
+
+// Fonction pour calculer la distance entre deux points GPS en mètres
+const calculateDistance = (pos1, pos2) => {
+  const R = 6371e3; // Rayon de la Terre en mètres
+  const φ1 = (pos1.latitude * Math.PI) / 180;
+  const φ2 = (pos2.latitude * Math.PI) / 180;
+  const Δφ = ((pos2.latitude - pos1.latitude) * Math.PI) / 180;
+  const Δλ = ((pos2.longitude - pos1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance en mètres
+};
+
+module.exports = { getHistorique };
