@@ -28,5 +28,5 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error('❌ Erreur MongoDB:', err));
 
 app.listen(port, () => {
-  console.log(`✅ API REST en écoute sur https://backend-ojdz.onrender.com/api:${port}`);
+  console.log(`✅ API REST en écoute sur https://backend-ojdz.onrender.com/:${port}`);
 });
