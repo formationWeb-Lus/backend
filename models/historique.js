@@ -8,15 +8,8 @@ const historiqueSchema = new mongoose.Schema({
   end_time: String,
   total_stops: Number,
   total_stop_time: String,
-  positions: [
-    {
-      latitude: Number,
-      longitude: Number,
-      duree: String,
-      quartier: String,
-      avenue: String
-    }
-  ]
+  positions: Array
 });
 
+// ✅ Pas de bufferCommands ici
 module.exports = mongoose.model('Historique', historiqueSchema);

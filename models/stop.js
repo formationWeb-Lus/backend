@@ -10,4 +10,5 @@ const stopSchema = new mongoose.Schema({
   duration_seconds: Number
 });
 
+// ✅ Pas de bufferCommands ici
 module.exports = mongoose.model('Stop', stopSchema);
