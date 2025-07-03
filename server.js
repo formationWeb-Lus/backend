@@ -1,11 +1,13 @@
+// backend/server.js ou app.js (selon ta config)
 const express = require('express');
 const app = express();
-const pgRoutes = require('./routes/subRoutes');
-
 app.use(express.json());
-app.use('/api', pgRoutes);
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`✅ API REST PostgreSQL en écoute sur http://localhost:${PORT}`);
-});
+const authRoutes = require('./routes/authRoutes');
+
+app.use('/api/auth', authRoutes);
+
+// Autres routes...
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
