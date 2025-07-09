@@ -1,3 +1,4 @@
+// models/Position.js
 const mongoose = require('mongoose');
 
 const positionSchema = new mongoose.Schema({
@@ -5,8 +6,8 @@ const positionSchema = new mongoose.Schema({
   latitude: Number,
   longitude: Number,
   vitesse: Number,
-  timestamp: Date
+  timestamp: { type: Date, default: Date.now },
+  userId: Number, // ✅ Lien vers PostgreSQL
 });
 
-// ✅ Pas de bufferCommands ici
 module.exports = mongoose.model('Position', positionSchema);

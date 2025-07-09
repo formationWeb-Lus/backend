@@ -1,9 +1,22 @@
 const Position = require('../models/Position');
+const Device = require('../models/Device');
 
-// GET : Récupérer toutes les positions
+// GET : Récupérer toutes les positions (filtrées par userId si fourni)
 const getAllPositions = async (req, res) => {
+  const userId = req.query.userId;
+
   try {
-    const positions = await Position.find();
+    let positions;
+
+    if (userId) {
+      const devices = await Device.find({ user_id: userId });
+      const deviceIds = devices.map(d => d.device_id);
+
+      positions = await Position.find({ vehiculeId: { $in: deviceIds } });
+    } else {
+      positions = await Position.find();
+    }
+
     res.status(200).json(positions);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err });
@@ -13,7 +26,7 @@ const getAllPositions = async (req, res) => {
 // POST : Enregistrer une nouvelle position
 const createPosition = async (req, res) => {
   const { vehiculeId, latitude, longitude, vitesse, timestamp } = req.body;
-  
+
   const newPosition = new Position({
     vehiculeId,
     latitude,
@@ -61,10 +74,9 @@ const deletePosition = async (req, res) => {
   }
 };
 
-// Exporter toutes les fonctions
 module.exports = {
   getAllPositions,
   createPosition,
   updatePosition,
-  deletePosition
+  deletePosition,
 };
