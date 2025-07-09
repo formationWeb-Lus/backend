@@ -1,18 +1,10 @@
-const { Pool } = require('pg');
-const pool = new Pool({
-  connectionString: process.env.PG_URI,
+// ✅ models/Device.js
+const mongoose = require('mongoose');
+
+const deviceSchema = new mongoose.Schema({
+  device_id: { type: String, required: true },
+  user_id: { type: Number, required: true }  // ou String si tes user_id sont des strings
 });
 
-/**
- * Récupère les `device_id` liés à un utilisateur.
- * @param {string|number} userId
- * @returns {Promise<string[]>}
- */
-async function getDeviceIdsByUser(userId) {
-  const result = await pool.query('SELECT device_id FROM devices WHERE user_id = $1', [userId]);
-  return result.rows.map(row => row.device_id);
-}
+module.exports = mongoose.model('Device', deviceSchema); // ⚠️ ceci est très important
 
-module.exports = {
-  getDeviceIdsByUser,
-};
