@@ -2,8 +2,11 @@ const Position = require('../models/Position');
 const Device = require('../models/Device');
 
 const getAllPositions = async (req, res) => {
-  const userId = req.query.userId;
-  console.log('🔍 Requête reçue avec userId:', userId);
+  let userId = req.query.userId;
+
+  if (userId) {
+    userId = Number(userId); // Important : convertir en nombre
+  }
 
   try {
     let positions;
@@ -11,7 +14,6 @@ const getAllPositions = async (req, res) => {
     if (userId) {
       const devices = await Device.find({ user_id: userId });
       const deviceIds = devices.map(d => d.device_id);
-      console.log('🔗 Devices trouvés :', deviceIds);
 
       positions = await Position.find({ vehiculeId: { $in: deviceIds } });
     } else {
@@ -20,8 +22,7 @@ const getAllPositions = async (req, res) => {
 
     res.status(200).json(positions);
   } catch (err) {
-    console.error('❌ Erreur dans getAllPositions :', err); // <-- très important !
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    res.status(500).json({ message: 'Erreur serveur', error: err });
   }
 };
 
