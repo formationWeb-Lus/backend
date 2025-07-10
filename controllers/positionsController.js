@@ -1,5 +1,5 @@
 const Position = require('../models/Position');
-const Device = require('../models/Device');
+const Device = require('../../gps-device-server/models/Device');
 
 const getAllPositions = async (req, res) => {
   let userId = req.query.userId;
